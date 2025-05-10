@@ -1,19 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { bubbleSort } from "./algorithms/bubbleSort";
 import { selectionSort } from "./algorithms/selectionSort";
 import { insertionSort } from "./algorithms/insertionSort";
 import { mergeSort } from "./algorithms/mergeSort";
 import { quickSort } from "./algorithms/quickSort";
 import { heapSort } from "./algorithms/heapSort";
-import { Switch } from "@/components/ui/switch"
-
+import { Line } from "react-chartjs-2";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
 import {
   Select,
   SelectContent,
@@ -21,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play } from "lucide-react";
+import { Play, StopCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,19 +53,227 @@ function App() {
   const [delay, setDelay] = useState(500);
   const [selectedSort, setSelectedSort] = useState(null);
   const [showAlert, setShowAlert] = useState(false);
-  const [showCarousel, setShowCarousel] = useState(false);
   const [sortingInProgress, setSortingInProgress] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
+  const cancelledRef = useRef(false);
 
-  const resetArray = () => {
-    var arr = [];
-    for (let i = 0; i < arrSize; i++) {
-      arr.push(Math.floor(Math.random() * 41) + 10);
+  const [isSorting, setIsSorting] = useState(false);
+  const [sortingDone, setSortingDone] = useState(false);
+
+  const [open, setOpen] = useState(false);
+  const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
+
+  const [bestCaseTimeComplexity, setBestCaseTimeComplexity] = useState("");
+  const [avgCaseTimeComplexity, setAvgCaseTimeComplexity] = useState("");
+  const [worstCaseTimeComplexity, setWorstCaseTimeComplexity] = useState("");
+  const [spaceComplexity, setSpaceComplexity] = useState("");
+  const [data, setData] = useState(null);
+  const [options, setOptions] = useState(null);
+
+  const startSorting = async () => {
+    setIsSorting(true);
+    setSortingDone(false);
+    
+    // Make sure all bars are reset to black before starting
+    resetBarColors();
+    
+    // Run the sorting algorithm
+    await runSort();
+    
+    // Update states after sorting completes
+    setIsSorting(false);
+    setSortingDone(true);
+  };
+
+  const complexityInfo = {
+    bubble: {
+      title: "Bubble Sort",
+      time: {
+        best: "O(n)",
+        average: "O(n²)",
+        worst: "O(n²)",
+      },
+      space: "O(1)",
+      chartData: [100, 10000, 10000], // O(n), O(n²), O(n²)
+      spaceData: [1, 1, 1],
+    },
+    insertion: {
+      title: "Insertion Sort",
+      time: {
+        best: "O(n)",
+        average: "O(n²)",
+        worst: "O(n²)",
+      },
+      space: "O(1)",
+      chartData: [100, 10000, 10000],
+      spaceData: [1, 1, 1],
+    },
+    selection: {
+      title: "Selection Sort",
+      time: {
+        best: "O(n²)",
+        average: "O(n²)",
+        worst: "O(n²)",
+      },
+      space: "O(1)",
+      chartData: [10000, 10000, 10000],
+      spaceData: [1, 1, 1],
+    },
+    merge: {
+      title: "Merge Sort",
+      time: {
+        best: "O(n log n)",
+        average: "O(n log n)",
+        worst: "O(n log n)",
+      },
+      space: "O(n)",
+      chartData: [1000, 1000, 1000], // Simulating O(n log n)
+      spaceData: [100, 100, 100],
+    },
+    quick: {
+      title: "Quick Sort",
+      time: {
+        best: "O(n log n)",
+        average: "O(n log n)",
+        worst: "O(n²)",
+      },
+      space: "O(log n)",
+      chartData: [1000, 1000, 10000],
+      spaceData: [10, 10, 100],
+    },
+    heap: {
+      title: "Heap Sort",
+      time: {
+        best: "O(n log n)",
+        average: "O(n log n)",
+        worst: "O(n log n)",
+      },
+      space: "O(1)",
+      chartData: [1000, 1000, 1000],
+      spaceData: [1, 1, 1],
+    },
+  };
+
+  useEffect(() => {
+    if (!selectedSort) return;
+    const selected = complexityInfo[selectedSort];
+
+    setBestCaseTimeComplexity(selected.time.best);
+    setAvgCaseTimeComplexity(selected.time.average);
+    setWorstCaseTimeComplexity(selected.time.worst);
+    setSpaceComplexity(selected.space);
+
+    setData({
+      labels: ["Best Case", "Average Case", "Worst Case"],
+      datasets: [
+        {
+          label: "Time Complexity",
+          data: selected.chartData,
+          borderColor: "rgba(75, 192, 192, 1)",
+          backgroundColor: "rgba(75, 192, 192, 0.2)",
+          yAxisID: "y",
+          tension: 0.4,
+        },
+        {
+          label: "Space Complexity",
+          data: selected.spaceData,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "rgba(255, 99, 132, 0.2)",
+          yAxisID: "y1",
+          tension: 0.4,
+        },
+      ],
+    });
+
+    setOptions({
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: {
+          display: true,
+          text: `${selected.title} Time & Space Complexity`,
+        },
+      },
+      scales: {
+        y: {
+          type: "linear",
+          display: true,
+          position: "left",
+          title: { display: true, text: "Time Complexity" },
+        },
+        y1: {
+          type: "linear",
+          display: true,
+          position: "right",
+          grid: { drawOnChartArea: false },
+          title: { display: true, text: "Space Complexity" },
+        },
+      },
+    });
+  }, [selectedSort]);
+
+  const handleArraySize = (val) => {
+    // Convert the input to a number and ensure it stays within bounds
+    const validVal = Math.max(8, Math.min(val, 100));
+    setArrSize(validVal);
+
+    // Update width based on validVal, not original val
+    let newWidth; // Default width
+    if (validVal <= 10) newWidth = 60;
+    else if (validVal <= 20) newWidth = 40;
+    else if (validVal <= 30) newWidth = 33;
+    else if (validVal <= 40) newWidth = 25;
+    else if (validVal <= 50) newWidth = 19;
+    else if (validVal <= 60) newWidth = 15;
+    else if (validVal <= 70) newWidth = 13;
+    else if (validVal <= 80) newWidth = 11;
+    else if (validVal <= 90) newWidth = 8;
+    else newWidth = 7;
+    
+    setWidth(newWidth); 
+    
+    // Reset the array with the new size
+    resetArray(validVal);
+  };
+
+  // Modified resetArray to enforce exact array size
+  const resetArray = (size) => {
+    // Create a fresh array with random values
+    var newArr = [];
+    const arraySize = size !== undefined ? size : arrSize; // Use provided size or fall back to arrSize state
+    
+    // Ensure array size is exactly as specified
+    newArr.length = 0; // Clear array if reusing
+    for (let i = 0; i < arraySize; i++) {
+      // Generate values between 10 and 50
+      newArr.push(Math.floor(Math.random() * 41) + 10);
     }
-    setArr(arr);
-    var bar = document.querySelectorAll(".bar");
-    for (let i = 0; i < bar.length; i++) {
-      bar[i].style.background = "black";
+    
+    // Verify array length matches expected size
+    if (newArr.length !== arraySize) {
+      console.error(`Array size mismatch: ${newArr.length} vs expected ${arraySize}`);
+      // Fix the array to match expected size
+      while (newArr.length < arraySize) {
+        newArr.push(Math.floor(Math.random() * 41) + 10);
+      }
+      if (newArr.length > arraySize) {
+        newArr = newArr.slice(0, arraySize);
+      }
     }
+    
+    // Update state
+    setArr(newArr);
+    
+    // Ensure DOM is updated and all bars are reset to black
+    setTimeout(() => {
+      const bars = document.querySelectorAll(".bar");
+      bars.forEach((bar) => {
+        bar.style.background = "black";
+      });
+    }, 50);
+    
+    // Reset sorting state
+    setSortingDone(false);
   };
 
   const changeDelay = (val) => {
@@ -63,66 +284,68 @@ function App() {
     setDelay(delay);
   }, [delay]);
 
-  const handleArraySize = (val) => {
-    if (val > 90) {
-      setWidth(7);
-    } else if (val > 80) {
-      setWidth(8);
-    } else if (val > 70) {
-      setWidth(11);
-    } else if (val > 60) {
-      setWidth(13);
-    } else if (val > 50) {
-      setWidth(15);
-    } else if (val > 40) {
-      setWidth(19);
-    } else if (val > 30) {
-      setWidth(25);
-    } else if (val > 20) {
-      setWidth(33);
-    } else if (val > 10) {
-      setWidth(40);
-    } else {
-      setWidth(60);
-    }
-    setArrSize(val);
-    resetArray();
-  };
-
   useEffect(() => {
     resetArray();
   }, []);
 
   const runSort = async () => {
-    setSortingInProgress(true);
-    switch (selectedSort) {
-      case "bubble":
-        await bubbleSort(delay);
-        break;
-      case "insertion":
-        await insertionSort(delay);
-        break;
-      case "selection":
-        await selectionSort(delay);
-        break;
-      case "merge":
-        await mergeSort(delay);
-        break;
-      case "quick":
-        await quickSort(delay);
-        break;
-      case "heap":
-        await heapSort(delay);
-        break;
-      default:
-        setShowAlert(true);
-        break;
+    if (!selectedSort) {
+      setShowAlert(true);
+      return;
     }
+
+    // Reset states and ensure clean start
+    setCancelled(false);
+    cancelledRef.current = false;
+    setSortingInProgress(true);
+    resetBarColors();
+
+    const cancelCheck = () => cancelledRef.current;
+    
+    // Ensure delay is a reasonable number
+    const safeDelay = Math.max(10, Math.min(delay, 2000));
+
+    try {
+      // Run the selected sorting algorithm
+      switch (selectedSort) {
+        case "bubble":
+          await bubbleSort(safeDelay, cancelCheck);
+          break;
+        case "insertion":
+          await insertionSort(safeDelay, cancelCheck);
+          break;
+        case "selection":
+          await selectionSort(safeDelay, cancelCheck);
+          break;
+        case "merge":
+          await mergeSort(safeDelay, cancelCheck);
+          break;
+        case "quick":
+          await quickSort(safeDelay, cancelCheck);
+          break;
+        case "heap":
+          await heapSort(safeDelay, cancelCheck);
+          break;
+      }
+    } catch (error) {
+      console.error("Error during sorting:", error);
+      resetBarColors();
+    }
+
+    // Handle cancellation
+    if (cancelledRef.current) {
+      resetBarColors();
+    }
+
+    // Update state after sorting completes
     setSortingInProgress(false);
   };
 
-  const showCar = () => {
-    setShowCarousel((prev) => !prev);
+  const resetBarColors = () => {
+    const bars = document.querySelectorAll(".bar");
+    bars.forEach((bar) => {
+      bar.style.background = "black";
+    });
   };
 
   return (
@@ -136,9 +359,15 @@ function App() {
               <input
                 type="range"
                 value={arrSize}
-                onChange={(e) => handleArraySize(e.target.value)}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (val >= 8 && val <= 100) {
+                    handleArraySize(val);
+                  }
+                }}
                 min="8"
                 max="100"
+                step="1"
                 className="cursor-pointer"
                 disabled={sortingInProgress}
               />
@@ -166,8 +395,12 @@ function App() {
           </div>
         </div>
         <button
-          className={`bg-blue-600 px-4 py-2 rounded-md font-semibold ${sortingInProgress ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-          onClick={resetArray}
+          className={`bg-blue-600 px-4 py-2 rounded-md font-semibold ${
+            sortingInProgress
+              ? "opacity-50 cursor-not-allowed"
+              : "cursor-pointer"
+          }`}
+          onClick={() => resetArray(arrSize)}
           disabled={sortingInProgress}
         >
           Generate Array
@@ -194,8 +427,15 @@ function App() {
         </AlertDialog>
 
         <div className="flex items-center justify-center gap-5">
-          <Select onValueChange={(value) => setSelectedSort(value)} disabled={sortingInProgress}>
-            <SelectTrigger className={`w-52 font-semibold ${sortingInProgress ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <Select
+            onValueChange={(value) => setSelectedSort(value)}
+            disabled={sortingInProgress}
+          >
+            <SelectTrigger
+              className={`w-52 font-semibold ${
+                sortingInProgress ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
               <SelectValue placeholder="Choose Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -220,38 +460,35 @@ function App() {
             </SelectContent>
           </Select>
           <button
-            onClick={runSort}
-            className={`bg-green-700 flex justify-center items-center gap-1 px-3 py-2 font-semibold rounded-md ${sortingInProgress ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            disabled={sortingInProgress}
+            onClick={() => {
+              if (sortingInProgress) {
+                setCancelled(true);
+                cancelledRef.current = true;
+                resetBarColors();
+              } else {
+                startSorting();
+              }
+            }}
+            className={`flex justify-center items-center gap-1 px-3 py-2 font-semibold rounded-md ${
+              sortingInProgress
+                ? "cursor-pointer bg-red-500"
+                : "cursor-pointer bg-green-700"
+            }`}
           >
-            Run <Play className="w-4" />
+            {sortingInProgress ? (
+              <div className="flex gap-1">
+                Stop <StopCircle className="w-4" />
+              </div>
+            ) : (
+              <div className="flex gap-1">
+                Run <Play className="w-4" />
+              </div>
+            )}
           </button>
         </div>
-        <button 
-          onClick={showCar}
-          disabled={sortingInProgress}
-          className={sortingInProgress ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        >
-          Cariusel
-        </button>
-        <Switch className="" disabled={sortingInProgress}/>
-
       </div>
-      {showCarousel && (
-        <Carousel className="absolute  text-center ml-72 h-40 ">
-          <CarouselContent>
-            <CarouselItem className="bg-amber-200">
-              Time Complexity
-            </CarouselItem>
-            <CarouselItem className="bg-amber-500">
-              Space Complexity
-            </CarouselItem>
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
-      )}
-      <div className="array  flex justify-center w-full items-end h-[563px]">
+
+      <div className="array flex justify-center w-full items-end h-[563px]">
         {arr.map((val, i) => (
           <div
             key={i}
@@ -261,13 +498,117 @@ function App() {
               width: `${width}px`,
               WebkitTransition: `background-color ${delay}ms linear`,
               msTransition: `background-color ${delay}ms linear`,
-              transition: `height ${delay / 2}ms linear, background-color ${
-                delay / 5
-              }ms linear`,
+              transition: `height ${delay/2}ms linear, background-color ${delay/5}ms linear`
             }}
           ></div>
         ))}
       </div>
+      {sortingDone && (
+        <div className="flex gap-3 justify-center items-center my-4">
+          {/* TIME COMPLEXITY DIALOG */}
+          <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger asChild>
+              <button className="bg-black text-white px-4 py-2 rounded-md font-semibold">
+                Time Complexity
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {selectedSort && complexityInfo[selectedSort].title} - Time
+                  Complexity
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-center">
+                  <strong>Best Case:</strong> {bestCaseTimeComplexity} <br />
+                  <strong>Average Case:</strong> {avgCaseTimeComplexity} <br />
+                  <strong>Worst Case:</strong> {worstCaseTimeComplexity}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div style={{ height: "220px" }}>
+                <Line
+                  data={{
+                    labels: ["Best Case", "Average Case", "Worst Case"],
+                    datasets: [
+                      {
+                        label: "Time Complexity",
+                        data:
+                          selectedSort &&
+                          complexityInfo[selectedSort].chartData,
+                        borderColor: "rgba(75, 192, 192, 1)",
+                        backgroundColor: "rgba(75, 192, 192, 0.2)",
+                        tension: 0.4,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { position: "top" },
+                      title: {
+                        display: true,
+                        text: "Time Complexity Chart",
+                      },
+                    },
+                  }}
+                />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogAction>Close</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen}>
+            <AlertDialogTrigger asChild>
+              <button className="bg-black text-white px-4 py-2 rounded-md font-semibold">
+                Space Complexity
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {selectedSort && complexityInfo[selectedSort].title} - Space
+                  Complexity
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-center">
+                  <strong>Space:</strong> {spaceComplexity}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div style={{ height: "220px" }}>
+                <Line
+                  data={{
+                    labels: ["Best Case", "Average Case", "Worst Case"],
+                    datasets: [
+                      {
+                        label: "Space Complexity",
+                        data:
+                          selectedSort &&
+                          complexityInfo[selectedSort].spaceData,
+                        borderColor: "rgba(255, 99, 132, 1)",
+                        backgroundColor: "rgba(255, 99, 132, 0.2)",
+                        tension: 0.4,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    plugins: {
+                      legend: { position: "top" },
+                      title: {
+                        display: true,
+                        text: "Space Complexity Chart",
+                      },
+                    },
+                  }}
+                />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogAction>Close</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </div>
   );
 }
