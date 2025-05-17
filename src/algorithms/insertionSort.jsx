@@ -42,7 +42,6 @@ export const insertionSort = async (delay, cancelCheck) => {
   }
 };
 
-// Helper to reset all bars to black on cancel
 function resetBarsToBlack(bars) {
   for (let i = 0; i < bars.length; i++) {
     bars[i].style.background = "black";

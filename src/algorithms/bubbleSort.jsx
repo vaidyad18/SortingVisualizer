@@ -10,7 +10,6 @@ export const bubbleSort = async (delay, cancelCheck) => {
     }
   };
 
-  // Careful boundary handling
   for (let i = 0; i < arr.length - 1; i++) {
     if (cancelCheck()) {
       resetBarsToBlack();
@@ -24,7 +23,6 @@ export const bubbleSort = async (delay, cancelCheck) => {
         return;
       }
 
-      // Highlight current pair being compared
       arr[j].style.background = "blue";
       arr[j + 1].style.background = "blue";
       await MakeDelay(delay);
@@ -32,13 +30,10 @@ export const bubbleSort = async (delay, cancelCheck) => {
         resetBarsToBlack();
         return;
       }
-
-      // Extract heights and properly compare as integers
       const height1 = parseInt(arr[j].style.height);
       const height2 = parseInt(arr[j + 1].style.height);
       
       if (height1 > height2) {
-        // Highlight elements being swapped
         arr[j].style.background = "yellow";
         arr[j + 1].style.background = "yellow";
         await MakeDelay(delay);
@@ -47,24 +42,19 @@ export const bubbleSort = async (delay, cancelCheck) => {
           return;
         }
 
-        // Perform the swap
         arr[j].style.height = `${height2}px`;
         arr[j + 1].style.height = `${height1}px`;
         swapped = true;
       }
 
-      // Reset colors for elements just compared
       arr[j].style.background = "black";
       arr[j + 1].style.background = "black";
       await MakeDelay(delay/2);
     }
 
-    // Mark the last element as sorted
     arr[arr.length - i - 1].style.background = "green";
 
-    // If no swapping occurred, array is sorted
     if (!swapped) {
-      // Mark remaining elements as sorted
       for (let k = 0; k <= arr.length - i - 2; k++) {
         arr[k].style.background = "green";
       }
@@ -72,7 +62,6 @@ export const bubbleSort = async (delay, cancelCheck) => {
     }
   }
 
-  // Final coloring
   if (!cancelCheck()) {
     for (let i = 0; i < arr.length; i++) {
       await MakeDelay(delay);

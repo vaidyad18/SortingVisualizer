@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Play, StopCircle } from "lucide-react";
+import { Pause, Play, Square, StopCircle, StopCircleIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,14 +73,10 @@ function App() {
   const startSorting = async () => {
     setIsSorting(true);
     setSortingDone(false);
-    
-    // Make sure all bars are reset to black before starting
+
     resetBarColors();
-    
-    // Run the sorting algorithm
     await runSort();
-    
-    // Update states after sorting completes
+
     setIsSorting(false);
     setSortingDone(true);
   };
@@ -94,7 +90,7 @@ function App() {
         worst: "O(n²)",
       },
       space: "O(1)",
-      chartData: [100, 10000, 10000], // O(n), O(n²), O(n²)
+      chartData: [100, 10000, 10000], 
       spaceData: [1, 1, 1],
     },
     insertion: {
@@ -127,7 +123,7 @@ function App() {
         worst: "O(n log n)",
       },
       space: "O(n)",
-      chartData: [1000, 1000, 1000], // Simulating O(n log n)
+      chartData: [1000, 1000, 1000], 
       spaceData: [100, 100, 100],
     },
     quick: {
@@ -213,12 +209,10 @@ function App() {
   }, [selectedSort]);
 
   const handleArraySize = (val) => {
-    // Convert the input to a number and ensure it stays within bounds
     const validVal = Math.max(8, Math.min(val, 100));
     setArrSize(validVal);
 
-    // Update width based on validVal, not original val
-    let newWidth; // Default width
+    let newWidth;
     if (validVal <= 10) newWidth = 60;
     else if (validVal <= 20) newWidth = 40;
     else if (validVal <= 30) newWidth = 33;
@@ -229,30 +223,25 @@ function App() {
     else if (validVal <= 80) newWidth = 11;
     else if (validVal <= 90) newWidth = 8;
     else newWidth = 7;
-    
-    setWidth(newWidth); 
-    
-    // Reset the array with the new size
+
+    setWidth(newWidth);
+
     resetArray(validVal);
   };
 
-  // Modified resetArray to enforce exact array size
   const resetArray = (size) => {
-    // Create a fresh array with random values
     var newArr = [];
-    const arraySize = size !== undefined ? size : arrSize; // Use provided size or fall back to arrSize state
-    
-    // Ensure array size is exactly as specified
-    newArr.length = 0; // Clear array if reusing
+    const arraySize = size !== undefined ? size : arrSize; 
+
+    newArr.length = 0; 
     for (let i = 0; i < arraySize; i++) {
-      // Generate values between 10 and 50
       newArr.push(Math.floor(Math.random() * 41) + 10);
     }
-    
-    // Verify array length matches expected size
+
     if (newArr.length !== arraySize) {
-      console.error(`Array size mismatch: ${newArr.length} vs expected ${arraySize}`);
-      // Fix the array to match expected size
+      console.error(
+        `Array size mismatch: ${newArr.length} vs expected ${arraySize}`
+      );
       while (newArr.length < arraySize) {
         newArr.push(Math.floor(Math.random() * 41) + 10);
       }
@@ -260,19 +249,16 @@ function App() {
         newArr = newArr.slice(0, arraySize);
       }
     }
-    
-    // Update state
+
     setArr(newArr);
-    
-    // Ensure DOM is updated and all bars are reset to black
+
     setTimeout(() => {
       const bars = document.querySelectorAll(".bar");
       bars.forEach((bar) => {
         bar.style.background = "black";
       });
     }, 50);
-    
-    // Reset sorting state
+
     setSortingDone(false);
   };
 
@@ -294,19 +280,16 @@ function App() {
       return;
     }
 
-    // Reset states and ensure clean start
     setCancelled(false);
     cancelledRef.current = false;
     setSortingInProgress(true);
     resetBarColors();
 
     const cancelCheck = () => cancelledRef.current;
-    
-    // Ensure delay is a reasonable number
+
     const safeDelay = Math.max(10, Math.min(delay, 2000));
 
     try {
-      // Run the selected sorting algorithm
       switch (selectedSort) {
         case "bubble":
           await bubbleSort(safeDelay, cancelCheck);
@@ -332,12 +315,10 @@ function App() {
       resetBarColors();
     }
 
-    // Handle cancellation
     if (cancelledRef.current) {
       resetBarColors();
     }
 
-    // Update state after sorting completes
     setSortingInProgress(false);
   };
 
@@ -350,7 +331,7 @@ function App() {
 
   return (
     <div className="">
-      <div className="bg-black flex py-6 justify-around items-center text-white">
+      <div className="bg-black sticky top-0 flex py-6 justify-around items-center text-white">
         <div className="text-3xl font-bold">Sortify</div>
         <div className="flex justify-center items-center gap-10">
           <div className="">
@@ -477,18 +458,18 @@ function App() {
           >
             {sortingInProgress ? (
               <div className="flex gap-1">
-                Stop <StopCircle className="w-4" />
+                Stop <Pause className="w-4" />
               </div>
             ) : (
               <div className="flex gap-1">
-                Run <Play className="w-4" />
+                Sort <Play className="w-4" />
               </div>
             )}
           </button>
         </div>
       </div>
 
-      <div className="array flex justify-center w-full items-end h-[563px]">
+      <div className="array flex justify-center w-full items-end h-[553px]">
         {arr.map((val, i) => (
           <div
             key={i}
@@ -498,14 +479,16 @@ function App() {
               width: `${width}px`,
               WebkitTransition: `background-color ${delay}ms linear`,
               msTransition: `background-color ${delay}ms linear`,
-              transition: `height ${delay/2}ms linear, background-color ${delay/5}ms linear`
+              transition: `height ${delay / 2}ms linear, background-color ${
+                delay / 5
+              }ms linear`,
             }}
           ></div>
         ))}
       </div>
+      
       {sortingDone && (
-        <div className="flex gap-3 justify-center items-center my-4">
-          {/* TIME COMPLEXITY DIALOG */}
+        <div className="flex gap-3 justify-center items-center my-6">
           <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
               <button className="bg-black text-white px-4 py-2 rounded-md font-semibold">
@@ -609,6 +592,15 @@ function App() {
           </AlertDialog>
         </div>
       )}
+      <div className="my-6 flex-col w-full text-center">
+        <div className="text-2xl font-semibold mb-2">How it works</div>
+        <div className="text-muted-foreground text-center mx-[450px]">
+          This visualizer demonstrates various sorting algorithms in action.
+          Generate a new array, select an algorithm, adjust the size and speed,
+          then click "Sort!" to see the algorithm work through the array in
+          real-time.
+        </div>
+      </div>
     </div>
   );
 }

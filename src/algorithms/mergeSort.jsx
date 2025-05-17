@@ -18,7 +18,6 @@ export const mergeSort = async (delay, cancelCheck) => {
     const n1 = m - l + 1;
     const n2 = r - m;
 
-    // Copy data to temporary arrays
     for (let i = 0; i < n1; i++) {
       left.push(parseInt(arr[l + i].style.height));
       arr[l + i].style.background = "blue";
@@ -32,7 +31,6 @@ export const mergeSort = async (delay, cancelCheck) => {
     await MakeDelay(delay);
     if (cancelCheck()) return resetBarsToBlack();
 
-    // Merge the temporary arrays back
     let i = 0, j = 0, k = l;
     while (i < n1 && j < n2) {
       if (cancelCheck()) return resetBarsToBlack();
@@ -49,7 +47,6 @@ export const mergeSort = async (delay, cancelCheck) => {
       k++;
     }
 
-    // Copy remaining elements of left array
     while (i < n1) {
       if (cancelCheck()) return resetBarsToBlack();
 
@@ -60,7 +57,6 @@ export const mergeSort = async (delay, cancelCheck) => {
       await MakeDelay(delay);
     }
 
-    // Copy remaining elements of right array
     while (j < n2) {
       if (cancelCheck()) return resetBarsToBlack();
 
@@ -77,20 +73,17 @@ export const mergeSort = async (delay, cancelCheck) => {
 
     const m = l + Math.floor((r - l) / 2);
     
-    // Sort first and second halves
     await mergeSortRecursive(arr, l, m);
     if (cancelCheck()) return;
 
     await mergeSortRecursive(arr, m + 1, r);
     if (cancelCheck()) return;
 
-    // Merge the sorted halves
     await merge(arr, l, m, r);
   };
 
   await mergeSortRecursive(bars, 0, bars.length - 1);
 
-  // Final coloring
   if (!cancelCheck()) {
     for (let i = 0; i < bars.length; i++) {
       await MakeDelay(delay);
